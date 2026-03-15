@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pathways — Attendance Log</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f1efe9; --card:#fff; --accent:#2d5a27; --accent-lt:#e8f0e6; --accent-hv:#3d7a34;
+  --blue:#1a5276; --blue-lt:#eaf2f8; --orange:#b35c1e; --orange-lt:#fdf0e6;
+  --txt:#1a1a1a; --mut:#6b6b6b; --bdr:#d9d4cc; --red:#c0392b; --red-lt:#fdecea;
+  --sh:0 2px 12px rgba(0,0,0,.06); --r:10px;
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--txt); min-height:100vh; }
+
+/* ========== LOCATION BAR ========== */
+.loc-bar {
+  background:#1b1b1b; padding:calc(8px + var(--st)) 16px 8px;
+  display:flex; gap:6px; justify-content:center; flex-wrap:wrap;
+  position:sticky; top:0; z-index:110;
+}
+.loc-btn {
+  padding:7px 16px; border-radius:20px; border:2px solid rgba(255,255,255,.15);
+  background:transparent; color:rgba(255,255,255,.6); font-family:'DM Sans',sans-serif;
+  font-size:.78rem; font-weight:700; cursor:pointer; transition:all .15s;
+}
+.loc-btn:hover { border-color:rgba(255,255,255,.4); color:#fff; }
+.loc-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* ========== HEADER ========== */
+.header {
+  background:var(--accent); color:#fff; padding:14px 20px 12px;
+  position:sticky; top:46px; z-index:100; box-shadow:0 4px 20px rgba(45,90,39,.3);
+}
+.header-inner { max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; }
+.header h1 { font-family:'Playfair Display',serif; font-size:1.3rem; }
+.header h1 small { font-family:'DM Sans',sans-serif; font-size:.7rem; font-weight:500; opacity:.75; display:block; }
+
+/* ========== MAIN TABS ========== */
+.main-tabs { max-width:1100px; margin:0 auto; display:flex; padding:0 16px; }
+.mtab {
+  flex:1; padding:12px 8px; text-align:center; font-weight:700; font-size:.82rem;
+  cursor:pointer; border:none; border-bottom:3px solid transparent;
+  color:var(--mut); background:transparent; font-family:'DM Sans',sans-serif; transition:all .15s;
+}
+.mtab:hover { color:var(--txt); }
+.mtab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.mtab[data-p="staffPage"].active { color:var(--blue); border-bottom-color:var(--blue); }
+.mtab[data-p="adminPage"].active { color:var(--orange); border-bottom-color:var(--orange); }
+
+/* ========== CONTAINER ========== */
+.container { max-width:1100px; margin:0 auto; padding:12px 16px calc(66px + var(--sb)); }
+.page { display:none; }
+.page.active { display:block; }
+
+/* ========== FORM CARDS ========== */
+.fc { background:var(--card); border-radius:var(--r); padding:14px 16px; margin-bottom:10px; box-shadow:var(--sh); }
+.fc label { font-weight:600; font-size:.7rem; text-transform:uppercase; letter-spacing:.7px; color:var(--mut); display:block; margin-bottom:4px; }
+.fc input, .fc select { width:100%; padding:9px 11px; border:2px solid var(--bdr); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.92rem; background:#fff; }
+.fc input:focus, .fc select:focus { outline:none; border-color:var(--accent); }
+.fr { display:grid; gap:10px; }
+.fr3 { grid-template-columns:1fr 1fr 1fr; }
+.fr2 { grid-template-columns:1fr 1fr; }
+
+/* ========== HOME FILTER TABS ========== */
+.htabs { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
+.ht {
+  padding:5px 11px; border-radius:16px; border:2px solid var(--bdr); background:#fff;
+  font-family:'DM Sans',sans-serif; font-size:.73rem; font-weight:600;
+  cursor:pointer; color:var(--mut); transition:all .12s;
+}
+.ht:hover { border-color:var(--accent); color:var(--accent); }
+.ht.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.ht .c { background:rgba(255,255,255,.25); border-radius:10px; padding:1px 5px; font-size:.62rem; margin-left:2px; display:inline-block; }
+.ht:not(.active) .c { background:var(--accent-lt); color:var(--accent); }
+
+/* ========== ENTRY CARDS ========== */
+.el { display:flex; flex-direction:column; gap:4px; }
+.ec {
+  background:var(--card); border-radius:var(--r); padding:10px 12px; box-shadow:var(--sh);
+  display:grid; align-items:center; gap:7px; border-left:4px solid transparent;
+}
+.ec.pc { grid-template-columns:1fr auto auto auto; }
+.ec.sc { grid-template-columns:1fr auto auto auto; }
+.ec.filled { border-left-color:var(--accent); background:#fdfffd; }
+.ec.filled-s { border-left-color:var(--blue); background:#fafcff; }
+.ec.locked { border-left-color:#28a745; background:#f0f9f0; opacity:.85; pointer-events:none; }
+.ec.locked .lock-label { pointer-events:auto; }
+.lock-label { font-size:.68rem; color:#28a745; font-weight:700; display:flex; align-items:center; gap:3px; }
+.save-lock-btn { padding:6px 12px; border-radius:6px; border:none; background:#28a745; color:#fff; font-family:'DM Sans',sans-serif; font-size:.72rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+.save-lock-btn:hover { background:#218838; }
+.save-lock-btn:disabled { background:var(--bdr); color:var(--mut); cursor:default; }
+.ec .nm { font-weight:600; font-size:.88rem; }
+.ec .mt { font-size:.66rem; color:var(--mut); }
+.aai { font-size:.68rem; background:var(--accent-lt); color:var(--accent); padding:2px 7px; border-radius:4px; font-weight:600; white-space:nowrap; }
+
+.ti {
+  width:98px; padding:7px 5px; border:2px solid var(--bdr); border-radius:7px;
+  font-family:'DM Sans',sans-serif; font-size:.83rem; text-align:center; background:#fff;
+}
+.ti:focus { outline:none; border-color:var(--accent); }
+.ti.hv { border-color:var(--accent); background:var(--accent-lt); }
+.ti.sv { border-color:var(--blue); background:var(--blue-lt); }
+
+.ctr { text-align:center; font-size:.74rem; color:var(--mut); margin-bottom:7px; }
+.ctr b { color:var(--accent); }
+.empty-msg { text-align:center; padding:40px 20px; color:var(--mut); font-size:.88rem; }
+.empty-msg b { display:block; font-size:1rem; color:var(--txt); margin-bottom:4px; }
+
+/* ========== ADMIN ========== */
+.alock { text-align:center; padding:50px 20px; }
+.alock h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:6px; }
+.alock p { color:var(--mut); font-size:.82rem; margin-bottom:14px; }
+.pin-in { width:180px; padding:11px; font-size:1.2rem; text-align:center; letter-spacing:8px; border:2px solid var(--bdr); border-radius:8px; font-family:'DM Sans',sans-serif; }
+.pin-in:focus { outline:none; border-color:var(--orange); }
+.adash { display:none; }
+.adash.unlocked { display:block; }
+.asec { background:var(--card); border-radius:var(--r); padding:16px; margin-bottom:12px; box-shadow:var(--sh); }
+.asec h3 { font-size:.9rem; margin-bottom:8px; }
+
+.loglist { max-height:350px; overflow-y:auto; }
+.li-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--bdr); font-size:.8rem; }
+.li-row .ld { font-weight:700; }
+.li-row .linf { color:var(--mut); font-size:.72rem; }
+.li-row .la { display:flex; gap:5px; }
+
+.manage-list { max-height:400px; overflow-y:auto; }
+.m-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--bdr); font-size:.82rem; }
+.m-row .m-nm { flex:1; font-weight:600; }
+.m-row .m-hm { color:var(--mut); font-size:.75rem; min-width:80px; }
+.add-form { display:grid; grid-template-columns:1.5fr 1fr .6fr auto; gap:8px; margin-bottom:10px; align-items:end; }
+.add-form input, .add-form select { padding:8px; border:2px solid var(--bdr); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:.85rem; }
+.add-form input:focus, .add-form select:focus { outline:none; border-color:var(--accent); }
+
+.home-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; background:var(--accent-lt); color:var(--accent); font-size:.75rem; font-weight:600; margin:2px; }
+.home-chip button { background:none; border:none; color:var(--red); cursor:pointer; font-size:.8rem; font-weight:700; }
+
+/* ========== BUTTONS ========== */
+.mb { padding:5px 9px; border-radius:5px; border:none; font-family:'DM Sans',sans-serif; font-size:.7rem; font-weight:600; cursor:pointer; }
+.mb-v { background:var(--accent-lt); color:var(--accent); }
+.mb-v:hover { background:var(--accent); color:#fff; }
+.mb-e { background:var(--blue-lt); color:var(--blue); }
+.mb-e:hover { background:var(--blue); color:#fff; }
+.mb-d { background:var(--red-lt); color:var(--red); }
+.mb-d:hover { background:var(--red); color:#fff; }
+.mb-c { background:var(--orange-lt); color:var(--orange); }
+.mb-c:hover { background:var(--orange); color:#fff; }
+
+.bbar {
+  position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--bdr);
+  padding:9px 10px calc(6px + var(--sb)); display:flex; gap:7px; justify-content:center;
+  z-index:100; box-shadow:0 -4px 20px rgba(0,0,0,.08); flex-wrap:wrap;
+}
+.btn { padding:9px 16px; border-radius:7px; border:none; font-family:'DM Sans',sans-serif; font-size:.78rem; font-weight:600; cursor:pointer; }
+.btn:active { transform:scale(.97); }
+.btn-a { background:var(--accent); color:#fff; }
+.btn-b { background:var(--blue); color:#fff; }
+.btn-o { background:#fff; color:var(--accent); border:2px solid var(--accent); }
+.btn-d { background:var(--red-lt); color:var(--red); }
+
+/* ========== OVERLAY ========== */
+.ov { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; justify-content:center; align-items:center; padding:14px; backdrop-filter:blur(3px); }
+.ov.show { display:flex; }
+.ob { background:#fff; border-radius:14px; padding:20px; max-width:820px; width:100%; max-height:82vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,.1); }
+.ob h2 { font-family:'Playfair Display',serif; font-size:1.15rem; margin-bottom:3px; }
+.ob .sub { font-size:.78rem; color:var(--mut); margin-bottom:12px; }
+.dt { width:100%; border-collapse:collapse; font-size:.78rem; margin-bottom:12px; }
+.dt th { background:var(--accent); color:#fff; padding:6px 7px; text-align:left; font-weight:600; font-size:.68rem; text-transform:uppercase; }
+.dt.stbl th { background:var(--blue); }
+.dt td { padding:5px 7px; border-bottom:1px solid var(--bdr); }
+.dt tr:nth-child(even) { background:#faf9f7; }
+.oa { display:flex; gap:7px; flex-wrap:wrap; }
+
+.toast { position:fixed; bottom:76px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--accent); color:#fff; padding:9px 18px; border-radius:7px; font-weight:600; font-size:.8rem; opacity:0; transition:all .3s; z-index:400; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ========== RESPONSIVE ========== */
+@media(min-width:700px) { .el.g2 { display:grid; grid-template-columns:1fr 1fr; gap:5px; } }
+@media(max-width:699px) {
+  .ec.pc, .ec.sc { grid-template-columns:1fr; gap:4px; }
+  .ptimes, .stimes { display:flex; gap:6px; }
+  .ti { flex:1; width:auto; }
+  .fr3, .fr2 { grid-template-columns:1fr; }
+  .add-form { grid-template-columns:1fr; gap:6px; }
+  .header h1 { font-size:1.1rem; }
+  .li-row { flex-direction:column; align-items:flex-start; gap:5px; }
+  .loc-bar { padding:calc(6px + var(--st)) 8px 6px; }
+  .loc-btn { padding:6px 12px; font-size:.72rem; }
+  .header { top:42px; }
+}
+</style>
+</head>
+<body>
+
+<div class="loc-bar" id="locBar"></div>
+
+<div class="header">
+  <div class="header-inner">
+    <h1 id="locTitle">Pathways Westlake <small>Attendance Log</small></h1>
+    <span id="autoSave" style="font-size:.66rem;opacity:.7;color:#fff"></span>
+  </div>
+</div>
+
+<div class="main-tabs">
+  <button class="mtab active" data-p="pPage" onclick="goPage('pPage')">Participants</button>
+  <button class="mtab" data-p="staffPage" onclick="goPage('staffPage')">Staff Sign-In</button>
+  <button class="mtab" data-p="adminPage" onclick="goPage('adminPage')">Admin</button>
+</div>
+
+<div class="container">
+
+  <!-- ====== PARTICIPANT PAGE ====== -->
+  <div class="page active" id="pPage">
+    <div class="fc">
+      <div class="fr fr3">
+        <div><label>Driver Name</label><input type="text" id="driverName" placeholder="e.g. Angelica Roman" autocomplete="off"></div>
+        <div><label>Date</label><input type="date" id="logDate"></div>
+        <div><label>Filter Home</label><select id="homeFilter"><option value="ALL">All Homes</option></select></div>
+      </div>
+    </div>
+    <div class="htabs" id="htabs"></div>
+    <div class="ctr" id="pCtr"></div>
+    <div class="el g2" id="pList"></div>
+    <div class="empty-msg" id="pEmpty" style="display:none"><b>No individuals yet</b>Go to Admin → Manage Individuals to add people.</div>
+  </div>
+
+  <!-- ====== STAFF PAGE ====== -->
+  <div class="page" id="staffPage">
+    <div class="fc">
+      <div class="fr fr2">
+        <div><label>Date</label><input type="date" id="sDate"></div>
+        <div><label>Add Staff</label><button class="btn btn-b" onclick="addStaff()" style="width:100%;padding:9px">+ Add Staff Member</button></div>
+      </div>
+    </div>
+    <div class="ctr" id="sCtr"></div>
+    <div class="el" id="sList"></div>
+  </div>
+
+  <!-- ====== ADMIN PAGE ====== -->
+  <div class="page" id="adminPage">
+    <div class="alock" id="aLock">
+      <h2>Admin Access</h2>
+      <p>Enter PIN to access logs and settings</p>
+      <input type="password" class="pin-in" id="pinIn" maxlength="4" placeholder="····" inputmode="numeric">
+      <br><button class="btn btn-a" onclick="unlock()" style="margin-top:4px">Unlock</button>
+      <p style="font-size:.7rem;color:var(--mut);margin-top:10px">Default PIN: 1234</p>
+    </div>
+
+    <div class="adash" id="aDash">
+      <div class="asec">
+        <h3>Quick Actions</h3>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-a" onclick="saveDay()">Save Today's Log</button>
+          <button class="btn btn-b" onclick="reportToday()">Generate Report</button>
+          <button class="btn btn-o" onclick="exportAllCSV()">Export All CSV</button>
+          <button class="btn btn-d" onclick="clearToday()">Clear Today</button>
+        </div>
+      </div>
+
+      <div class="asec">
+        <h3>Manage Individuals — <span id="manLoc"></span></h3>
+        <div class="add-form">
+          <input type="text" id="addName" placeholder="Full Name">
+          <input type="text" id="addHome" placeholder="Home Name">
+          <select id="addAAI"><option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="1:1">1:1</option></select>
+          <button class="btn btn-a" onclick="addInd()">Add</button>
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.7px;color:var(--mut);display:block;margin-bottom:4px">Homes at this location</label>
+          <div id="homeChips"></div>
+        </div>
+        <div class="manage-list" id="manList"></div>
+        <div style="margin-top:6px;font-size:.72rem;color:var(--mut)" id="manCt"></div>
+      </div>
+
+      <div class="asec">
+        <h3>Saved Logs — <span id="logLoc"></span></h3>
+        <div class="loglist" id="logList"><p style="color:var(--mut);font-size:.8rem;padding:8px">No saved logs yet.</p></div>
+      </div>
+
+      <div class="asec">
+        <h3>Settings</h3>
+        <div class="fr fr2">
+          <div><label>Admin Email</label><input type="email" id="admEmail" placeholder="your@email.com"></div>
+          <div><label>Change PIN</label><div style="display:flex;gap:6px"><input type="password" id="newPin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" style="flex:1;padding:8px;border:2px solid var(--bdr);border-radius:6px;font-family:'DM Sans',sans-serif"><button class="mb mb-v" onclick="setPin()">Set</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bbar">
+  <button class="btn btn-a" onclick="saveDay()">Save Day</button>
+  <button class="btn btn-b" onclick="reportToday()">Report</button>
+  <button class="btn btn-o" onclick="showSum()">Summary</button>
+  <button class="btn btn-d" onclick="clearToday()">Clear</button>
+</div>
+
+<!-- SUMMARY OVERLAY -->
+<div class="ov" id="sumOv" onclick="clOv('sumOv',event)">
+  <div class="ob" onclick="event.stopPropagation()">
+    <h2>Daily Summary</h2>
+    <div class="sub" id="sumSub"></div>
+    <h3 style="font-size:.83rem;margin:8px 0 5px;color:var(--accent)">Participants</h3>
+    <table class="dt"><thead><tr><th>Name</th><th>Home</th><th>AAI</th><th>In</th><th>Out</th><th>Driver</th></tr></thead><tbody id="sumPB"></tbody></table>
+    <h3 style="font-size:.83rem;margin:8px 0 5px;color:var(--blue)">Staff</h3>
+    <table class="dt stbl"><thead><tr><th>Name</th><th>House</th><th>In</th><th>Out</th></tr></thead><tbody id="sumSB"></tbody></table>
+    <div class="oa">
+      <button class="btn btn-a" onclick="cpTxt()">Copy Text</button>
+      <button class="btn btn-b" onclick="cpCSV()">Copy CSV</button>
+      <button class="btn btn-o" onclick="clOv('sumOv')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW LOG OVERLAY -->
+<div class="ov" id="vOv" onclick="clOv('vOv',event)">
+  <div class="ob" onclick="event.stopPropagation()">
+    <h2 id="vT">Log</h2>
+    <div class="sub" id="vS"></div>
+    <div id="vC"></div>
+    <div class="oa" style="margin-top:10px">
+      <button class="btn btn-b" onclick="reportViewed()">Generate Report</button>
+      <button class="btn btn-o" onclick="cpViewCSV()">Copy CSV</button>
+      <button class="btn btn-o" onclick="clOv('vOv')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ================================================================
+// LOCATIONS
+// ================================================================
+const LOCS = [
+  {id:'westlake', name:'Pathways Westlake', short:'Westlake'},
+  {id:'avon', name:'Pathways Avon', short:'Avon'},
+  {id:'mentor', name:'Pathways Mentor', short:'Mentor'},
+  {id:'valleyview', name:'Pathways Valley View', short:'Valley View'},
+  {id:'garfield', name:'Pathways Garfield', short:'Garfield'}
+];
+
+const DEFAULTS = {
+  westlake:[
+    {name:"Michael Rooney",home:"Columbia II",aai:"B"},{name:"Warren Benzing",home:"Manning",aai:"B"},
+    {name:"Charles Biggs",home:"Manning",aai:"C"},{name:"Michael O'Shea",home:"Manning",aai:"1:1"},
+    {name:"Theodore Scafe",home:"Manning",aai:"C"},{name:"Michelle Perkins",home:"Myrtle",aai:"C"},
+    {name:"Elizabeth Schneider",home:"Myrtle",aai:"B"},{name:"Karen Luber",home:"Myrtle",aai:"A"},
+    {name:"John See",home:"Tauton",aai:"C"},{name:"Tommy Tvrdik",home:"Tauton",aai:"B"},
+    {name:"Jeff Bayus",home:"Walker",aai:"B"},{name:"Margaret Corrigan",home:"Walker",aai:"C"},
+    {name:"Christopher Jones",home:"Walker",aai:"C"},{name:"Mark Adkinson",home:"Bay Village",aai:"A"},
+    {name:"Carlos Martinez",home:"Bay Village",aai:"A"},{name:"Aljeana Pugh",home:"Brady",aai:"B"},
+    {name:"Robin Pettway",home:"Brady",aai:"B"},{name:"Michelle Kostya",home:"Brady",aai:"C"},
+    {name:"Matthew Mattei",home:"Jeanne Drive",aai:"1:1"},{name:"Harvey Graham",home:"Delaware",aai:"A"},
+    {name:"Andrew Brown",home:"Delaware",aai:"C"},{name:"Marion Wilson (Beth)",home:"Delaware",aai:"C"},
+    {name:"Kara Smigel",home:"Delaware",aai:"B"},{name:"Lisa St. Clair",home:"Beeler",aai:"C"},
+    {name:"Molly Orahood",home:"Beeler",aai:"C"},{name:"Scott Pennington",home:"Beeler",aai:"C"},
+    {name:"Christopher Tillman",home:"Beeler",aai:"A"},{name:"Ryan Borgquist",home:"Oakview",aai:"B"},
+    {name:"Joseph Case",home:"Westlake",aai:"B"},{name:"Zach Evans",home:"Westlake",aai:"A"},
+    {name:"Andrew Prihoda",home:"Southlake",aai:"A"},{name:"Melissa Skidmore",home:"Southlake",aai:""},
+    {name:"Beverly Landers",home:"Westlawn",aai:"C"},{name:"Mi Yup Kim",home:"Westlawn",aai:"C"},
+    {name:"Timothy Sokol",home:"Hilton",aai:"B"},{name:"Matthew Mishik",home:"NMT Carmen",aai:"A"},
+    {name:"Malek Wahdan",home:"NMT Carmen",aai:"C"},{name:"Max Smith",home:"NMT Bob",aai:"A"},
+    {name:"John Kelley (Jack)",home:"NMT Emily",aai:"B"},{name:"Miracle Bosque",home:"NMT Booker",aai:"C"},
+    {name:"Holly Thomas",home:"Community",aai:"B"},{name:"Alyssa Maraldo",home:"Community",aai:"C"},
+    {name:"Matthew Maraldo",home:"Community",aai:"C"},{name:"John McBride (Jack)",home:"Community",aai:"C"},
+    {name:"Jake Blood",home:"Community",aai:"C"},{name:"Antonio DeAngelis",home:"Community",aai:"C"},
+    {name:"Dominic DeAngelis",home:"Community",aai:"B"}
+  ],
+  avon:[], mentor:[], valleyview:[], garfield:[]
+};
+
+// ================================================================
+// STATE
+// ================================================================
+let curLoc = 'westlake';
+let individuals = {};
+let pTimes = {};
+let sRows = {};
+let sIdC = {};
+let activeHome = 'ALL';
+let vKey = null;
+
+// ================================================================
+// INDEXEDDB
+// ================================================================
+function odb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('PathwaysApp', 3);
+    r.onupgradeneeded = e => {
+      const db = e.target.result;
+      ['individuals','state','logs','settings'].forEach(s => {
+        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s);
+      });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+
+async function dbPut(store, key, val) {
+  const db = await odb();
+  const tx = db.transaction(store, 'readwrite');
+  tx.objectStore(store).put(val, key);
+  await new Promise(r => { tx.oncomplete = r; });
+}
+
+async function dbGet(store, key) {
+  try {
+    const db = await odb();
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    return new Promise(r => { req.onsuccess = () => r(req.result); });
+  } catch(e) { return undefined; }
+}
+
+async function dbAll(store) {
+  const db = await odb();
+  const tx = db.transaction(store, 'readonly');
+  const st = tx.objectStore(store);
+  const keys = await new Promise(r => { const q = st.getAllKeys(); q.onsuccess = () => r(q.result); });
+  const vals = await new Promise(r => { const q = st.getAll(); q.onsuccess = () => r(q.result); });
+  return keys.map((k, i) => ({key: k, value: vals[i]}));
+}
+
+async function dbDel(store, key) {
+  const db = await odb();
+  const tx = db.transaction(store, 'readwrite');
+  tx.objectStore(store).delete(key);
+}
+
+// ================================================================
+// HELPERS
+// ================================================================
+const $ = id => document.getElementById(id);
+
+function f12(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+function fD(d) {
+  if (!d) return '—';
+  const [y, mo, dy] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(mo)-1]} ${parseInt(dy)}, ${y}`;
+}
+
+function clOv(id, e) {
+  if (!e || e.target === $(id)) $(id).classList.remove('show');
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function dlFile(content, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function curP() { return individuals[curLoc] || []; }
+function curHomes() { return [...new Set(curP().map(p => p.home))].sort(); }
+function locName() { return LOCS.find(l => l.id === curLoc).name; }
+function locShort() { return LOCS.find(l => l.id === curLoc).short; }
+
+// ================================================================
+// LOCATION SWITCHING
+// ================================================================
+function buildLocBar() {
+  const el = $('locBar');
+  el.innerHTML = '';
+  LOCS.forEach(l => {
+    const b = document.createElement('button');
+    b.className = 'loc-btn' + (l.id === curLoc ? ' active' : '');
+    b.textContent = l.short;
+    b.onclick = () => switchLoc(l.id);
+    el.appendChild(b);
+  });
+}
+
+function switchLoc(id) {
+  curLoc = id;
+  activeHome = 'ALL';
+  $('locTitle').innerHTML = `${locName()} <small>Attendance Log</small>`;
+  buildLocBar();
+  rebuildAll();
+  $('manLoc').textContent = locShort();
+  $('logLoc').textContent = locShort();
+  if ($('aDash').classList.contains('unlocked')) { renderManage(); loadLogs(); }
+}
+
+function rebuildAll() {
+  buildHomeFilter();
+  buildHTabs();
+  renderP();
+  renderS();
+}
+
+// ================================================================
+// AUTO-SAVE
+// ================================================================
+let svTimer = null;
+
+function scheduleSave() {
+  clearTimeout(svTimer);
+  svTimer = setTimeout(async () => {
+    const state = { _driver: $('driverName').value, _date: $('logDate').value };
+    LOCS.forEach(l => {
+      state[l.id] = { pTimes: pTimes[l.id] || {}, sRows: sRows[l.id] || [], sIdC: sIdC[l.id] || 1 };
+    });
+    await dbPut('state', 'current', state);
+    $('autoSave').textContent = 'Saved ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  }, 500);
+}
+
+async function restoreState() {
+  const s = await dbGet('state', 'current');
+  if (!s) return;
+  if (s._driver) $('driverName').value = s._driver;
+  if (s._date) $('logDate').value = s._date;
+  LOCS.forEach(l => {
+    if (s[l.id]) {
+      pTimes[l.id] = s[l.id].pTimes || {};
+      sRows[l.id] = s[l.id].sRows || [];
+      sIdC[l.id] = s[l.id].sIdC || 1;
+    }
+  });
+}
+
+// ================================================================
+// INDIVIDUALS PERSISTENCE
+// ================================================================
+async function loadIndividuals() {
+  for (const l of LOCS) {
+    const saved = await dbGet('individuals', l.id);
+    individuals[l.id] = saved || [...(DEFAULTS[l.id] || [])];
+    if (!saved) await dbPut('individuals', l.id, individuals[l.id]);
+    if (!pTimes[l.id]) pTimes[l.id] = {};
+    individuals[l.id].forEach((_, i) => {
+      if (!pTimes[l.id][i]) pTimes[l.id][i] = {timeIn:'', timeOut:''};
+    });
+    if (!sRows[l.id]) sRows[l.id] = [];
+    if (!sIdC[l.id]) sIdC[l.id] = 1;
+  }
+}
+
+async function saveIndividuals() {
+  await dbPut('individuals', curLoc, individuals[curLoc]);
+  const newPT = {};
+  individuals[curLoc].forEach((_, i) => {
+    newPT[i] = pTimes[curLoc][i] || {timeIn:'', timeOut:''};
+  });
+  pTimes[curLoc] = newPT;
+}
+
+// ================================================================
+// SETTINGS
+// ================================================================
+async function loadSettings() {
+  const s = await dbGet('settings', 'admin');
+  if (s && s.email) $('admEmail').value = s.email;
+}
+async function getPin() {
+  const s = await dbGet('settings', 'admin');
+  return (s && s.pin) || '1234';
+}
+async function saveSetting(obj) {
+  const cur = (await dbGet('settings', 'admin')) || {};
+  await dbPut('settings', 'admin', {...cur, ...obj});
+}
+
+// ================================================================
+// PAGE SWITCHING
+// ================================================================
+function goPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  $(p).classList.add('active');
+  document.querySelectorAll('.mtab').forEach(t => t.classList.toggle('active', t.dataset.p === p));
+  $('sDate').value = $('logDate').value;
+}
+
+// ================================================================
+// PARTICIPANT TAB
+// ================================================================
+function buildHomeFilter() {
+  const sel = $('homeFilter');
+  sel.innerHTML = '<option value="ALL">All Homes</option>';
+  curHomes().forEach(h => {
+    const o = document.createElement('option');
+    o.value = h; o.textContent = h; sel.appendChild(o);
+  });
+  sel.onchange = () => { activeHome = sel.value; buildHTabs(); renderP(); };
+}
+
+function buildHTabs() {
+  const el = $('htabs');
+  el.innerHTML = '';
+  const pp = curP();
+  const pt = pTimes[curLoc] || {};
+  if (!pp.length) return;
+
+  const allFilled = pp.filter((_, i) => pt[i] && (pt[i].timeIn || pt[i].timeOut)).length;
+  const allBtn = document.createElement('button');
+  allBtn.className = 'ht' + (activeHome === 'ALL' ? ' active' : '');
+  allBtn.innerHTML = `All <span class="c">${allFilled}/${pp.length}</span>`;
+  allBtn.onclick = () => { activeHome = 'ALL'; $('homeFilter').value = 'ALL'; buildHTabs(); renderP(); };
+  el.appendChild(allBtn);
+
+  curHomes().forEach(h => {
+    const hp = pp.filter(p => p.home === h);
+    const f = hp.filter(p => { const gi = pp.indexOf(p); return pt[gi] && (pt[gi].timeIn || pt[gi].timeOut); }).length;
+    const btn = document.createElement('button');
+    btn.className = 'ht' + (activeHome === h ? ' active' : '');
+    btn.innerHTML = `${h} <span class="c">${f}/${hp.length}</span>`;
+    btn.onclick = () => { activeHome = h; $('homeFilter').value = h; buildHTabs(); renderP(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderP() {
+  const list = $('pList');
+  const pp = curP();
+  const pt = pTimes[curLoc] || {};
+  list.innerHTML = '';
+
+  if (!pp.length) { $('pEmpty').style.display = 'block'; $('pCtr').textContent = ''; return; }
+  $('pEmpty').style.display = 'none';
+
+  const filtered = pp.map((p, i) => ({...p, idx: i})).filter(p => activeHome === 'ALL' || p.home === activeHome);
+  const total = pp.filter((_, i) => pt[i] && (pt[i].timeIn || pt[i].timeOut)).length;
+  $('pCtr').innerHTML = `<b>${total}</b> of ${pp.length} have times`;
+
+  const mob = window.innerWidth <= 699;
+
+  filtered.forEach(p => {
+    const tI = (pt[p.idx] && pt[p.idx].timeIn) || '';
+    const tO = (pt[p.idx] && pt[p.idx].timeOut) || '';
+    const filled = tI || tO;
+    const card = document.createElement('div');
+    card.className = 'ec pc' + (filled ? ' filled' : '');
+
+    if (mob) {
+      card.style.gridTemplateColumns = '1fr';
+      card.innerHTML = `
+        <div><div class="nm">${p.name}</div><div class="mt">${p.home} · <span class="aai">AAI: ${p.aai || '—'}</span></div></div>
+        <div class="ptimes">
+          <input type="time" class="ti${tI ? ' hv' : ''}" value="${tI}" data-i="${p.idx}" data-f="timeIn">
+          <input type="time" class="ti${tO ? ' hv' : ''}" value="${tO}" data-i="${p.idx}" data-f="timeOut">
+        </div>`;
+    } else {
+      card.innerHTML = `
+        <div><div class="nm">${p.name}</div><div class="mt">${p.home}</div></div>
+        <span class="aai">AAI: ${p.aai || '—'}</span>
+        <input type="time" class="ti${tI ? ' hv' : ''}" value="${tI}" data-i="${p.idx}" data-f="timeIn">
+        <input type="time" class="ti${tO ? ' hv' : ''}" value="${tO}" data-i="${p.idx}" data-f="timeOut">`;
+    }
+
+    card.querySelectorAll('.ti').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const idx = parseInt(e.target.dataset.i);
+        if (!pTimes[curLoc]) pTimes[curLoc] = {};
+        if (!pTimes[curLoc][idx]) pTimes[curLoc][idx] = {timeIn:'', timeOut:''};
+        pTimes[curLoc][idx][e.target.dataset.f] = e.target.value;
+        e.target.classList.toggle('hv', !!e.target.value);
+        const cd = e.target.closest('.ec');
+        cd.classList.toggle('filled', !!(pTimes[curLoc][idx].timeIn || pTimes[curLoc][idx].timeOut));
+        const t2 = curP().filter((_, i) => pTimes[curLoc][i] && (pTimes[curLoc][i].timeIn || pTimes[curLoc][i].timeOut)).length;
+        $('pCtr').innerHTML = `<b>${t2}</b> of ${curP().length} have times`;
+        buildHTabs();
+        scheduleSave();
+      });
+    });
+
+    list.appendChild(card);
+  });
+}
+
+// ================================================================
+// STAFF TAB
+// ================================================================
+function addStaff() {
+  if (!sRows[curLoc]) sRows[curLoc] = [];
+  if (!sIdC[curLoc]) sIdC[curLoc] = 1;
+  sRows[curLoc].push({id: sIdC[curLoc]++, name:'', lastName:'', home:'', timeIn:'', timeOut:'', locked: false});
+  scheduleSave();
+  renderS();
+}
+
+function lockStaff(idx) {
+  const row = sRows[curLoc][idx];
+  if (!row.name) { toast('Enter a name first'); return; }
+  if (!row.timeIn) { toast('Enter a time in first'); return; }
+  if (!confirm(`Lock entry for ${row.name} ${row.lastName}? This cannot be edited after.`)) return;
+  sRows[curLoc][idx].locked = true;
+  scheduleSave();
+  renderS();
+  toast(`${row.name} ${row.lastName} locked`);
+}
+
+function rmStaff(i) {
+  if (sRows[curLoc][i].locked) { toast('This entry is locked — only Admin can unlock'); return; }
+  sRows[curLoc].splice(i, 1);
+  renderS();
+  scheduleSave();
+}
+
+function adminUnlockStaff(i) {
+  sRows[curLoc][i].locked = false;
+  scheduleSave();
+  renderS();
+  toast('Entry unlocked');
+}
+
+function renderS() {
+  const list = $('sList');
+  const rows = sRows[curLoc] || [];
+  list.innerHTML = '';
+
+  // Datalist for home suggestions
+  let dl = document.createElement('datalist');
+  dl.id = 'hl_' + curLoc;
+  curHomes().forEach(h => { const o = document.createElement('option'); o.value = h; dl.appendChild(o); });
+  list.appendChild(dl);
+
+  const filled = rows.filter(r => r.timeIn || r.timeOut).length;
+  $('sCtr').innerHTML = `<b>${filled}</b> of ${rows.length} staff signed in`;
+
+  const mob = window.innerWidth <= 699;
+  const isAdminOpen = $('aDash').classList.contains('unlocked');
+
+  rows.forEach((row, idx) => {
+    const card = document.createElement('div');
+    const isFilled = row.timeIn || row.timeOut;
+
+    if (row.locked) {
+      // LOCKED CARD — display only
+      card.className = 'ec sc locked';
+      card.style.pointerEvents = 'none';
+      if (mob) card.style.gridTemplateColumns = '1fr';
+      else card.style.gridTemplateColumns = '1fr auto auto auto';
+
+      const lockActions = isAdminOpen
+        ? `<span class="lock-label" style="pointer-events:auto"><button class="mb mb-d" onclick="adminUnlockStaff(${idx})" style="pointer-events:auto">Unlock</button></span>`
+        : `<span class="lock-label">&#128274; Saved</span>`;
+
+      if (mob) {
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="nm">${row.name} ${row.lastName}</div><div class="mt">${row.home || '—'}</div></div>
+            ${lockActions}
+          </div>
+          <div class="stimes" style="pointer-events:none">
+            <input type="time" class="ti sv" value="${row.timeIn}" disabled>
+            <input type="time" class="ti sv" value="${row.timeOut}" disabled>
+          </div>`;
+      } else {
+        card.innerHTML = `
+          <div><div class="nm">${row.name} ${row.lastName}</div><div class="mt">${row.home || '—'}</div></div>
+          <input type="time" class="ti sv" value="${row.timeIn}" disabled>
+          <input type="time" class="ti sv" value="${row.timeOut}" disabled>
+          ${lockActions}`;
+      }
+    } else {
+      // EDITABLE CARD
+      card.className = 'ec sc' + (isFilled ? ' filled-s' : '');
+      const homeInput = `<input type="text" class="ti" style="min-width:100px;text-align:left" placeholder="Home" value="${row.home}" data-i="${idx}" data-f="home" list="hl_${curLoc}">`;
+
+      if (mob) {
+        card.style.gridTemplateColumns = '1fr';
+        card.innerHTML = `
+          <div style="display:flex;gap:5px">
+            <input type="text" class="ti" style="flex:1;width:auto;text-align:left" placeholder="First Name" value="${row.name}" data-i="${idx}" data-f="name">
+            <input type="text" class="ti" style="flex:1;width:auto;text-align:left" placeholder="Last Name" value="${row.lastName}" data-i="${idx}" data-f="lastName">
+          </div>
+          ${homeInput}
+          <div class="stimes">
+            <input type="time" class="ti${row.timeIn ? ' sv' : ''}" value="${row.timeIn}" data-i="${idx}" data-f="timeIn">
+            <input type="time" class="ti${row.timeOut ? ' sv' : ''}" value="${row.timeOut}" data-i="${idx}" data-f="timeOut">
+            <button class="save-lock-btn" onclick="lockStaff(${idx})">Save</button>
+            <button class="mb mb-d" onclick="rmStaff(${idx})" style="padding:7px 9px">&#10005;</button>
+          </div>`;
+      } else {
+        card.innerHTML = `
+          <div style="display:flex;gap:5px">
+            <input type="text" class="ti" style="flex:1;width:auto;text-align:left" placeholder="First Name" value="${row.name}" data-i="${idx}" data-f="name">
+            <input type="text" class="ti" style="flex:1;width:auto;text-align:left" placeholder="Last Name" value="${row.lastName}" data-i="${idx}" data-f="lastName">
+          </div>
+          ${homeInput}
+          <input type="time" class="ti${row.timeIn ? ' sv' : ''}" value="${row.timeIn}" data-i="${idx}" data-f="timeIn">
+          <div style="display:flex;gap:4px;align-items:center">
+            <input type="time" class="ti${row.timeOut ? ' sv' : ''}" value="${row.timeOut}" data-i="${idx}" data-f="timeOut">
+            <button class="save-lock-btn" onclick="lockStaff(${idx})">Save</button>
+            <button class="mb mb-d" onclick="rmStaff(${idx})">&#10005;</button>
+          </div>`;
+      }
+
+      card.querySelectorAll('input').forEach(inp => {
+        const evType = inp.type === 'time' ? 'change' : 'input';
+        inp.addEventListener(evType, e => {
+          const i = parseInt(e.target.dataset.i);
+          const f = e.target.dataset.f;
+          sRows[curLoc][i][f] = e.target.value;
+          if (f === 'timeIn' || f === 'timeOut') {
+            e.target.classList.toggle('sv', !!e.target.value);
+            e.target.closest('.ec').classList.toggle('filled-s', !!(sRows[curLoc][i].timeIn || sRows[curLoc][i].timeOut));
+          }
+          $('sCtr').innerHTML = `<b>${(sRows[curLoc]||[]).filter(r => r.timeIn || r.timeOut).length}</b> of ${(sRows[curLoc]||[]).length} staff signed in`;
+          scheduleSave();
+        });
+      });
+    }
+
+    list.appendChild(card);
+  });
+}
+
+// ================================================================
+// ADMIN
+// ================================================================
+async function unlock() {
+  if ($('pinIn').value === await getPin()) {
+    $('aLock').style.display = 'none';
+    $('aDash').classList.add('unlocked');
+    $('manLoc').textContent = locShort();
+    $('logLoc').textContent = locShort();
+    renderManage();
+    loadLogs();
+    loadSettings();
+  } else {
+    toast('Wrong PIN');
+    $('pinIn').value = '';
+  }
+}
+
+async function setPin() {
+  const n = $('newPin').value;
+  if (n.length !== 4 || !/^\d+$/.test(n)) { toast('PIN must be 4 digits'); return; }
+  await saveSetting({pin: n});
+  $('newPin').value = '';
+  toast('PIN updated!');
+}
+
+// ================================================================
+// MANAGE INDIVIDUALS
+// ================================================================
+function renderManage() {
+  const pp = curP();
+  const list = $('manList');
+  const chips = $('homeChips');
+
+  // Home chips
+  const homes = curHomes();
+  chips.innerHTML = homes.length
+    ? homes.map(h => `<span class="home-chip">${h}<button onclick="rmHome('${h.replace(/'/g,"\\'")}')">&#10005;</button></span>`).join('')
+    : '<span style="font-size:.78rem;color:var(--mut)">No homes yet</span>';
+
+  // Individual list
+  if (!pp.length) {
+    list.innerHTML = '<div class="empty-msg"><b>No individuals</b>Use the form above to add participants.</div>';
+    $('manCt').textContent = '';
+    return;
+  }
+
+  const sorted = pp.map((p, i) => ({...p, oi: i})).sort((a, b) => a.home.localeCompare(b.home) || a.name.localeCompare(b.name));
+  list.innerHTML = '';
+  sorted.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'm-row';
+    row.innerHTML = `
+      <span class="m-nm">${p.name}</span>
+      <span class="m-hm">${p.home}</span>
+      <span class="aai">AAI: ${p.aai || '—'}</span>
+      <button class="mb mb-d" onclick="rmInd(${p.oi})">Remove</button>`;
+    list.appendChild(row);
+  });
+  $('manCt').textContent = `${pp.length} individuals at this location`;
+}
+
+async function addInd() {
+  const nm = $('addName').value.trim();
+  const hm = $('addHome').value.trim();
+  const aa = $('addAAI').value;
+  if (!nm) { toast('Enter a name'); return; }
+  if (!hm) { toast('Enter a home'); return; }
+  individuals[curLoc].push({name: nm, home: hm, aai: aa});
+  const idx = individuals[curLoc].length - 1;
+  if (!pTimes[curLoc]) pTimes[curLoc] = {};
+  pTimes[curLoc][idx] = {timeIn:'', timeOut:''};
+  await saveIndividuals();
+  $('addName').value = '';
+  $('addHome').value = '';
+  renderManage();
+  rebuildAll();
+  scheduleSave();
+  toast('Added ' + nm);
+}
+
+async function rmInd(idx) {
+  const p = individuals[curLoc][idx];
+  if (!confirm(`Remove ${p.name}?`)) return;
+  individuals[curLoc].splice(idx, 1);
+  await saveIndividuals();
+  renderManage();
+  rebuildAll();
+  scheduleSave();
+  toast('Removed ' + p.name);
+}
+
+async function rmHome(h) {
+  const count = individuals[curLoc].filter(p => p.home === h).length;
+  if (!confirm(`Remove "${h}" and all ${count} individual(s)?`)) return;
+  individuals[curLoc] = individuals[curLoc].filter(p => p.home !== h);
+  await saveIndividuals();
+  renderManage();
+  rebuildAll();
+  scheduleSave();
+  toast('Removed ' + h);
+}
+
+// ================================================================
+// DAY LOGS
+// ================================================================
+function getPayload() {
+  const pp = curP();
+  const pt = pTimes[curLoc] || {};
+  const filledP = pp.map((p, i) => ({...p, idx: i}))
+    .filter(p => pt[p.idx] && (pt[p.idx].timeIn || pt[p.idx].timeOut))
+    .map(p => ({name: p.name, home: p.home, aai: p.aai, timeIn: pt[p.idx].timeIn, timeOut: pt[p.idx].timeOut}));
+  const filledS = (sRows[curLoc] || []).filter(r => r.name || r.timeIn).map(r => ({...r}));
+  return {
+    date: $('logDate').value,
+    driver: $('driverName').value,
+    location: curLoc,
+    locationName: locName(),
+    participants: filledP,
+    staff: filledS,
+    savedAt: new Date().toISOString()
+  };
+}
+
+async function saveDay() {
+  const pl = getPayload();
+  if (!pl.date) { toast('Set a date first'); return; }
+  await dbPut('logs', `${curLoc}_${pl.date}`, pl);
+  const em = $('admEmail').value;
+  if (em) await saveSetting({email: em});
+  toast('Log saved: ' + fD(pl.date));
+  loadLogs();
+}
+
+async function loadLogs() {
+  const all = await dbAll('logs');
+  const filtered = all.filter(i => i.value.location === curLoc).sort((a, b) => b.key.localeCompare(a.key));
+  const el = $('logList');
+  if (!filtered.length) {
+    el.innerHTML = '<p style="color:var(--mut);font-size:.8rem;padding:8px">No saved logs for this location.</p>';
+    return;
+  }
+  el.innerHTML = '';
+  filtered.forEach(item => {
+    const d = item.value;
+    const row = document.createElement('div');
+    row.className = 'li-row';
+    row.innerHTML = `
+      <div>
+        <div class="ld">${fD(d.date)}</div>
+        <div class="linf">${(d.participants||[]).length} participants · ${(d.staff||[]).length} staff · Driver: ${d.driver||'—'}</div>
+      </div>
+      <div class="la">
+        <button class="mb mb-v" onclick="viewLog('${item.key}')">View</button>
+        <button class="mb mb-e" onclick="openReport('${item.key}')">Report</button>
+        <button class="mb mb-c" onclick="dlCSV('${item.key}')">CSV</button>
+        <button class="mb mb-d" onclick="delLog('${item.key}')">Del</button>
+      </div>`;
+    el.appendChild(row);
+  });
+}
+
+async function delLog(k) {
+  if (!confirm('Delete this log?')) return;
+  await dbDel('logs', k);
+  toast('Deleted');
+  loadLogs();
+}
+
+async function viewLog(k) {
+  const d = await dbGet('logs', k);
+  if (!d) return;
+  vKey = k;
+  $('vT').textContent = `${d.locationName} — ${fD(d.date)}`;
+  $('vS').textContent = `Driver: ${d.driver || '—'} · Saved: ${new Date(d.savedAt).toLocaleString()}`;
+
+  let html = '<h3 style="font-size:.83rem;margin:0 0 5px;color:var(--accent)">Participants</h3>';
+  html += '<table class="dt"><thead><tr><th>Name</th><th>Home</th><th>AAI</th><th>In</th><th>Out</th></tr></thead><tbody>';
+  (d.participants || []).forEach(p => {
+    html += `<tr><td>${p.name}</td><td>${p.home}</td><td>${p.aai}</td><td>${f12(p.timeIn)}</td><td>${f12(p.timeOut)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  html += '<h3 style="font-size:.83rem;margin:8px 0 5px;color:var(--blue)">Staff</h3>';
+  html += '<table class="dt stbl"><thead><tr><th>Name</th><th>House</th><th>In</th><th>Out</th></tr></thead><tbody>';
+  (d.staff || []).forEach(s => {
+    html += `<tr><td>${s.name} ${s.lastName||''}</td><td>${s.home||'—'}</td><td>${f12(s.timeIn)}</td><td>${f12(s.timeOut)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  $('vC').innerHTML = html;
+  $('vOv').classList.add('show');
+}
+
+// ================================================================
+// AUDIT-READY REPORT
+// ================================================================
+function buildReportHTML(d) {
+  // Group participants by home
+  const pByHome = {};
+  (d.participants || []).forEach(p => {
+    if (!pByHome[p.home]) pByHome[p.home] = [];
+    pByHome[p.home].push(p);
+  });
+  const pHomes = Object.keys(pByHome).sort();
+
+  // Group staff by home
+  const sByHome = {};
+  (d.staff || []).forEach(s => {
+    const h = s.home || 'Unassigned';
+    if (!sByHome[h]) sByHome[h] = [];
+    sByHome[h].push(s);
+  });
+  const sHomes = Object.keys(sByHome).sort();
+
+  const generated = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})
+    + ' at ' + new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+
+  // Build participant tables grouped by home
+  let pTables = '';
+  pHomes.forEach(home => {
+    pTables += `<div class="home-hdr">${home}</div>
+    <table class="rt"><thead><tr><th style="width:32%">Participant Name</th><th>Home</th><th>AAI</th><th>Time In</th><th>Time Out</th></tr></thead><tbody>`;
+    pByHome[home].forEach(p => {
+      pTables += `<tr><td>${p.name}</td><td>${p.home}</td><td>${p.aai || '—'}</td><td>${f12(p.timeIn)}</td><td>${f12(p.timeOut)}</td></tr>`;
+    });
+    pTables += '</tbody></table>';
+  });
+
+  // Build staff tables grouped by home
+  let sTables = '';
+  sHomes.forEach(home => {
+    sTables += `<div class="home-hdr">${home}</div>
+    <table class="rt staff"><thead><tr><th style="width:35%">Staff Name</th><th>Assigned House</th><th>Time In</th><th>Time Out</th></tr></thead><tbody>`;
+    sByHome[home].forEach(s => {
+      sTables += `<tr><td>${s.name} ${s.lastName || ''}</td><td>${s.home || '—'}</td><td>${f12(s.timeIn)}</td><td>${f12(s.timeOut)}</td></tr>`;
+    });
+    sTables += '</tbody></table>';
+  });
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>${d.locationName} — Attendance Report ${fD(d.date)}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;color:#1a1a1a;background:#fff}
+@media print{
+  @page{margin:.6in .5in;size:letter}
+  .no-print{display:none!important}
+  .report{padding:0}
+}
+
+.toolbar{position:sticky;top:0;background:#1b1b1b;padding:12px 20px;display:flex;gap:10px;justify-content:center;z-index:10}
+.toolbar button{padding:9px 20px;border-radius:6px;border:none;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer}
+.tb-print{background:#2d5a27;color:#fff}
+.tb-email{background:#1a5276;color:#fff}
+.tb-close{background:#eee;color:#333}
+
+.report{max-width:850px;margin:0 auto;padding:30px 40px}
+
+.banner{background:linear-gradient(135deg,#2d5a27,#3d7a34);color:#fff;padding:14px 20px;border-radius:8px;margin-bottom:20px}
+.banner .org{font-family:'Playfair Display',serif;font-size:1.05rem}
+.banner .org-sub{font-size:.73rem;opacity:.85;margin-top:2px}
+
+.rpt-hdr{border-bottom:3px solid #2d5a27;padding-bottom:16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start}
+.rpt-hdr .left h1{font-family:'Playfair Display',serif;font-size:1.5rem;color:#2d5a27;margin-bottom:2px}
+.rpt-hdr .left h2{font-size:.9rem;font-weight:600;color:#333}
+.rpt-hdr .right{text-align:right;font-size:.76rem;color:#666;line-height:1.7}
+.rpt-hdr .right .lbl{font-weight:700;color:#333;text-transform:uppercase;font-size:.66rem;letter-spacing:.5px}
+
+.sec-hdr{background:#f5f3ef;border-left:4px solid #2d5a27;padding:10px 14px;margin:20px 0 8px;font-weight:700;font-size:.86rem;color:#2d5a27;display:flex;justify-content:space-between;align-items:center}
+.sec-hdr.staff-sec{border-left-color:#1a5276;color:#1a5276;background:#eef4f9}
+.sec-hdr .cnt{font-size:.7rem;font-weight:600;background:#fff;padding:3px 10px;border-radius:12px}
+
+.home-hdr{font-size:.76rem;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.8px;padding:8px 0 4px;margin-top:10px;border-bottom:1px solid #e0e0e0}
+
+.rt{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:4px}
+.rt th{background:#2d5a27;color:#fff;padding:6px 10px;text-align:left;font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.4px}
+.rt.staff th{background:#1a5276}
+.rt td{padding:5px 10px;border-bottom:1px solid #e8e8e8}
+.rt tr:nth-child(even){background:#fafaf8}
+
+.footer{margin-top:28px;padding-top:12px;border-top:2px solid #e0e0e0;display:flex;justify-content:space-between;font-size:.68rem;color:#999}
+.sig{border-top:1px solid #333;width:200px;padding-top:4px;color:#333;font-size:.7rem;font-weight:600;margin-top:30px}
+</style></head><body>
+
+<div class="toolbar no-print">
+  <button class="tb-print" onclick="window.print()">Print / Save as PDF</button>
+  <button class="tb-email" onclick="emailRpt()">Email Report</button>
+  <button class="tb-close" onclick="window.close()">Close</button>
+</div>
+
+<div class="report">
+  <div class="banner">
+    <div class="org">Our Lady of the Wayside — Home to Opportunity</div>
+    <div class="org-sub">Pathways Day Program — Arrival / Departure Log</div>
+  </div>
+
+  <div class="rpt-hdr">
+    <div class="left">
+      <h1>${d.locationName}</h1>
+      <h2>Daily Attendance Report</h2>
+    </div>
+    <div class="right">
+      <div><span class="lbl">Date:</span> ${fD(d.date)}</div>
+      <div><span class="lbl">Driver:</span> ${d.driver || '—'}</div>
+      <div><span class="lbl">Generated:</span> ${generated}</div>
+    </div>
+  </div>
+
+  <div class="sec-hdr">
+    Participant Arrival / Departure Log
+    <span class="cnt">${(d.participants||[]).length} Participants</span>
+  </div>
+  ${pTables || '<p style="color:#999;padding:10px;font-size:.82rem">No participant data recorded.</p>'}
+
+  ${(d.staff||[]).length ? `
+  <div class="sec-hdr staff-sec" style="${pHomes.length > 8 ? 'page-break-before:always' : ''}">
+    Staff Attendance Log
+    <span class="cnt">${d.staff.length} Staff</span>
+  </div>
+  ${sTables}` : ''}
+
+  <div class="footer">
+    <div><div class="sig">Director Signature / Date</div></div>
+    <div style="text-align:right">
+      <div>${d.locationName} · ${fD(d.date)}</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function emailRpt(){
+  var em=prompt('Enter email address:','');
+  if(!em)return;
+  var s=encodeURIComponent('${d.locationName} Attendance Report — ${fD(d.date)}');
+  var b=encodeURIComponent('Please find the attendance report attached.\\n\\nUse Print > Save as PDF to generate the PDF attachment.');
+  window.open('mailto:'+encodeURIComponent(em)+'?subject='+s+'&body='+b);
+}
+<\/script>
+</body></html>`;
+}
+
+async function openReport(key) {
+  const d = typeof key === 'string' ? await dbGet('logs', key) : key;
+  if (!d) return;
+  const html = buildReportHTML(d);
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else { toast('Allow pop-ups for this site'); }
+}
+
+async function reportToday() {
+  await saveDay();
+  openReport(getPayload());
+}
+
+function reportViewed() {
+  if (vKey) openReport(vKey);
+}
+
+// ================================================================
+// CSV EXPORT
+// ================================================================
+function mkCSV(d) {
+  let c = `${d.locationName} — ${fD(d.date)}\n\nPARTICIPANTS\nName,Home,AAI,Time In,Time Out,Driver\n`;
+  (d.participants || []).forEach(p => {
+    c += `"${p.name}","${p.home}","${p.aai}","${f12(p.timeIn)}","${f12(p.timeOut)}","${d.driver || ''}"\n`;
+  });
+  c += `\nSTAFF ATTENDANCE\nFirst Name,Last Name,House,Time In,Time Out\n`;
+  (d.staff || []).forEach(s => {
+    c += `"${s.name}","${s.lastName || ''}","${s.home || ''}","${f12(s.timeIn)}","${f12(s.timeOut)}"\n`;
+  });
+  return c;
+}
+
+async function dlCSV(k) {
+  const d = await dbGet('logs', k);
+  if (!d) return;
+  dlFile(mkCSV(d), `pathways_${d.location}_${d.date}.csv`, 'text/csv');
+  toast('CSV downloaded');
+}
+
+async function exportAllCSV() {
+  const all = await dbAll('logs');
+  const filt = all.filter(i => i.value.location === curLoc);
+  if (!filt.length) { toast('No logs for this location'); return; }
+  let c = 'Date,Location,Type,Name,Home,AAI,Time In,Time Out,Driver\n';
+  filt.forEach(i => {
+    const d = i.value;
+    (d.participants || []).forEach(p => {
+      c += `"${d.date}","${d.locationName}","Participant","${p.name}","${p.home}","${p.aai}","${f12(p.timeIn)}","${f12(p.timeOut)}","${d.driver || ''}"\n`;
+    });
+    (d.staff || []).forEach(s => {
+      c += `"${d.date}","${d.locationName}","Staff","${s.name} ${s.lastName||''}","${s.home||''}","","${f12(s.timeIn)}","${f12(s.timeOut)}",""\n`;
+    });
+  });
+  dlFile(c, `pathways_${curLoc}_all.csv`, 'text/csv');
+  toast('Exported');
+}
+
+function cpViewCSV() {
+  if (!vKey) return;
+  dbGet('logs', vKey).then(d => {
+    if (!d) return;
+    navigator.clipboard.writeText(mkCSV(d)).then(() => toast('CSV copied!'));
+  });
+}
+
+// ================================================================
+// SUMMARY OVERLAY
+// ================================================================
+function showSum() {
+  const d = getPayload();
+  $('sumSub').textContent = `${d.locationName} · Driver: ${d.driver || '—'} · ${fD(d.date)} · ${d.participants.length} participants · ${d.staff.length} staff`;
+
+  const pb = $('sumPB');
+  pb.innerHTML = '';
+  d.participants.forEach(p => {
+    pb.innerHTML += `<tr><td>${p.name}</td><td>${p.home}</td><td>${p.aai}</td><td>${f12(p.timeIn)}</td><td>${f12(p.timeOut)}</td><td>${d.driver || '—'}</td></tr>`;
+  });
+
+  const sb = $('sumSB');
+  sb.innerHTML = '';
+  d.staff.forEach(s => {
+    sb.innerHTML += `<tr><td>${s.name} ${s.lastName || ''}</td><td>${s.home || '—'}</td><td>${f12(s.timeIn)}</td><td>${f12(s.timeOut)}</td></tr>`;
+  });
+
+  $('sumOv').classList.add('show');
+}
+
+function cpTxt() {
+  const d = getPayload();
+  let t = `${d.locationName} — ${fD(d.date)}\nDriver: ${d.driver || '—'}\n\nPARTICIPANTS\n`;
+  d.participants.forEach(p => { t += `${p.name} | ${p.home} | ${p.aai} | ${f12(p.timeIn)} | ${f12(p.timeOut)}\n`; });
+  t += `\nSTAFF\n`;
+  d.staff.forEach(s => { t += `${s.name} ${s.lastName || ''} | ${s.home || ''} | ${f12(s.timeIn)} | ${f12(s.timeOut)}\n`; });
+  navigator.clipboard.writeText(t).then(() => toast('Copied!'));
+}
+
+function cpCSV() {
+  navigator.clipboard.writeText(mkCSV(getPayload())).then(() => toast('CSV copied!'));
+}
+
+// ================================================================
+// CLEAR TODAY
+// ================================================================
+function clearToday() {
+  if (!confirm("Clear all today's data for this location? Saved logs are NOT affected.")) return;
+  curP().forEach((_, i) => { pTimes[curLoc][i] = {timeIn:'', timeOut:''}; });
+  sRows[curLoc] = [];
+  sIdC[curLoc] = 1;
+  $('driverName').value = '';
+  $('logDate').valueAsDate = new Date();
+  scheduleSave();
+  rebuildAll();
+  toast('Cleared');
+}
+
+// ================================================================
+// BOOT
+// ================================================================
+$('logDate').valueAsDate = new Date();
+$('sDate').valueAsDate = new Date();
+$('driverName').addEventListener('input', scheduleSave);
+$('logDate').addEventListener('change', e => { $('sDate').value = e.target.value; scheduleSave(); });
+$('pinIn').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+$('admEmail').addEventListener('change', e => saveSetting({email: e.target.value}));
+
+(async function() {
+  await loadIndividuals();
+  await restoreState();
+  buildLocBar();
+  switchLoc(curLoc);
+})();
+</script>
+</body>
+</html>
