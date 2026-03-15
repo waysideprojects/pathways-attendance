@@ -192,6 +192,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--txt);
   .header { top:42px; }
 }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -200,7 +202,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--txt);
 <div class="header">
   <div class="header-inner">
     <h1 id="locTitle">Pathways Westlake <small>Attendance Log</small></h1>
-    <span id="autoSave" style="font-size:.66rem;opacity:.7;color:#fff"></span>
+    <span id="autoSave" style="font-size:.66rem;opacity:.7;color:#fff">☁ Cloud Sync</span>
   </div>
 </div>
 
@@ -388,51 +390,98 @@ let activeHome = 'ALL';
 let vKey = null;
 
 // ================================================================
-// INDEXEDDB
+// FIREBASE
 // ================================================================
-function odb() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open('PathwaysApp', 3);
-    r.onupgradeneeded = e => {
-      const db = e.target.result;
-      ['individuals','state','logs','settings'].forEach(s => {
-        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s);
-      });
-    };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
-}
+firebase.initializeApp({
+  apiKey: "AIzaSyBECetbt2icDfBu7mWU8RjpLUAEt6SYgrU",
+  authDomain: "pathways-attendance.firebaseapp.com",
+  projectId: "pathways-attendance",
+  storageBucket: "pathways-attendance.firebasestorage.app",
+  messagingSenderId: "432399934087",
+  appId: "1:432399934087:web:6cc6b7abe21647cea0ce22"
+});
+const db = firebase.firestore();
 
+// Enable offline persistence so app works without internet
+db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+  console.warn('Firestore persistence unavailable:', err.code);
+});
+
+// ================================================================
+// DATABASE HELPERS (Firestore)
+// ================================================================
 async function dbPut(store, key, val) {
-  const db = await odb();
-  const tx = db.transaction(store, 'readwrite');
-  tx.objectStore(store).put(val, key);
-  await new Promise(r => { tx.oncomplete = r; });
+  await db.collection(store).doc(key).set(JSON.parse(JSON.stringify(val)));
 }
 
 async function dbGet(store, key) {
   try {
-    const db = await odb();
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).get(key);
-    return new Promise(r => { req.onsuccess = () => r(req.result); });
-  } catch(e) { return undefined; }
+    const doc = await db.collection(store).doc(key).get();
+    return doc.exists ? doc.data() : undefined;
+  } catch(e) { console.error('dbGet error:', e); return undefined; }
 }
 
 async function dbAll(store) {
-  const db = await odb();
-  const tx = db.transaction(store, 'readonly');
-  const st = tx.objectStore(store);
-  const keys = await new Promise(r => { const q = st.getAllKeys(); q.onsuccess = () => r(q.result); });
-  const vals = await new Promise(r => { const q = st.getAll(); q.onsuccess = () => r(q.result); });
-  return keys.map((k, i) => ({key: k, value: vals[i]}));
+  const snapshot = await db.collection(store).get();
+  return snapshot.docs.map(doc => ({ key: doc.id, value: doc.data() }));
 }
 
 async function dbDel(store, key) {
-  const db = await odb();
-  const tx = db.transaction(store, 'readwrite');
-  tx.objectStore(store).delete(key);
+  await db.collection(store).doc(key).delete();
+}
+
+// ================================================================
+// REAL-TIME SYNC
+// ================================================================
+let suppressRemote = false;
+
+function startRealtimeSync() {
+  // Sync state across devices
+  db.collection('state').doc('current').onSnapshot(doc => {
+    if (suppressRemote) return;
+    if (!doc.exists) return;
+    const s = doc.data();
+    // Update driver/date only if fields aren't focused
+    if (s._driver && document.activeElement !== $('driverName')) $('driverName').value = s._driver;
+    if (s._date && document.activeElement !== $('logDate')) {
+      $('logDate').value = s._date;
+      $('sDate').value = s._date;
+    }
+    // Update times and staff for all locations
+    LOCS.forEach(l => {
+      if (s[l.id]) {
+        pTimes[l.id] = s[l.id].pTimes || {};
+        sRows[l.id] = s[l.id].sRows || [];
+        sIdC[l.id] = s[l.id].sIdC || 1;
+      }
+    });
+    // Re-render current view if user isn't actively editing a time input
+    const ae = document.activeElement;
+    const isEditingTime = ae && ae.classList && ae.classList.contains('ti');
+    if (!isEditingTime) {
+      buildHTabs();
+      renderP();
+      renderS();
+    }
+  });
+
+  // Sync individuals list across devices
+  LOCS.forEach(l => {
+    db.collection('individuals').doc(l.id).onSnapshot(doc => {
+      if (suppressRemote) return;
+      if (!doc.exists) return;
+      const data = doc.data();
+      if (data && data.list) {
+        individuals[l.id] = data.list;
+        if (l.id === curLoc) {
+          buildHomeFilter();
+          buildHTabs();
+          renderP();
+          if ($('aDash').classList.contains('unlocked')) renderManage();
+        }
+      }
+    });
+  });
 }
 
 // ================================================================
@@ -519,13 +568,15 @@ let svTimer = null;
 function scheduleSave() {
   clearTimeout(svTimer);
   svTimer = setTimeout(async () => {
+    suppressRemote = true;
     const state = { _driver: $('driverName').value, _date: $('logDate').value };
     LOCS.forEach(l => {
       state[l.id] = { pTimes: pTimes[l.id] || {}, sRows: sRows[l.id] || [], sIdC: sIdC[l.id] || 1 };
     });
     await dbPut('state', 'current', state);
     $('autoSave').textContent = 'Saved ' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  }, 500);
+    setTimeout(() => { suppressRemote = false; }, 1000);
+  }, 800);
 }
 
 async function restoreState() {
@@ -548,8 +599,9 @@ async function restoreState() {
 async function loadIndividuals() {
   for (const l of LOCS) {
     const saved = await dbGet('individuals', l.id);
-    individuals[l.id] = saved || [...(DEFAULTS[l.id] || [])];
-    if (!saved) await dbPut('individuals', l.id, individuals[l.id]);
+    const list = saved && saved.list ? saved.list : null;
+    individuals[l.id] = list || [...(DEFAULTS[l.id] || [])];
+    if (!list) await dbPut('individuals', l.id, {list: individuals[l.id]});
     if (!pTimes[l.id]) pTimes[l.id] = {};
     individuals[l.id].forEach((_, i) => {
       if (!pTimes[l.id][i]) pTimes[l.id][i] = {timeIn:'', timeOut:''};
@@ -560,7 +612,7 @@ async function loadIndividuals() {
 }
 
 async function saveIndividuals() {
-  await dbPut('individuals', curLoc, individuals[curLoc]);
+  await dbPut('individuals', curLoc, {list: individuals[curLoc]});
   const newPT = {};
   individuals[curLoc].forEach((_, i) => {
     newPT[i] = pTimes[curLoc][i] || {timeIn:'', timeOut:''};
@@ -1301,6 +1353,7 @@ $('admEmail').addEventListener('change', e => saveSetting({email: e.target.value
   await restoreState();
   buildLocBar();
   switchLoc(curLoc);
+  startRealtimeSync();
 })();
 </script>
 </body>
